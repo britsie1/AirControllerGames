@@ -18,7 +18,6 @@ export interface Player {
 }
 
 export function usePeer(isHost: boolean, hostId?: string) {
-  const [peer, setPeer] = useState<Peer | null>(null);
   const [connections, setConnections] = useState<Record<string, DataConnection>>({});
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [id, setId] = useState<string>('');
@@ -50,8 +49,6 @@ export function usePeer(isHost: boolean, hostId?: string) {
       console.error('Peer error:', err);
       setError(err.message);
     });
-
-    setPeer(newPeer);
 
     return () => {
       newPeer.destroy();
