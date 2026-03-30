@@ -13,7 +13,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
   const [debug, setDebug] = useState('');
 
   const lastSent = useRef(0);
-  const JITTER_THRESHOLD = 0.05;
+  const JITTER_THRESHOLD = 0.01;
   const lastX = useRef(0.5);
   const lastY = useRef(0.5);
 
@@ -38,13 +38,19 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
     }
   };
 
+  const [motionData, setMotionData] = useState({ x: 0, y: 0 });
+
   const startListening = () => {
     window.addEventListener('devicemotion', (event) => {
-      const now = Date.now();
-      if (now - lastSent.current < 100) return; // 100ms throttle
-
       const accel = event.accelerationIncludingGravity;
       if (!accel) return;
+
+      const rawX = accel.x || 0;
+      const rawY = accel.y || 0;
+      setMotionData({ x: rawX, y: rawY });
+
+      const now = Date.now();
+      if (now - lastSent.current < 100) return; // 100ms throttle
 
       // Normalize values (assuming phone is held vertically)
       // Range is usually -10 to 10
@@ -101,6 +107,9 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
       </div>
 
       <div className="w-full space-y-6">
+        <div className="text-xs text-slate-500 font-mono text-center p-2 bg-slate-800/50 rounded-lg">
+          Motion: X: {motionData.x.toFixed(2)}, Y: {motionData.y.toFixed(2)}
+        </div>
         {needsPermission ? (
           <button
             onClick={requestPermission}

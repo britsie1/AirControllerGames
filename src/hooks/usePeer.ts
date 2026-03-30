@@ -28,9 +28,19 @@ export function usePeer(isHost: boolean, hostId?: string) {
   const generatedId = useRef(Math.floor(100000 + Math.random() * 900000).toString());
 
   useEffect(() => {
+    const config = {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ],
+      },
+    };
+
     const newPeer = isHost 
-      ? new Peer(generatedId.current) 
-      : new Peer();
+      ? new Peer(generatedId.current, config) 
+      : new Peer('', config);
 
     newPeer.on('open', (id) => {
       setId(id);
