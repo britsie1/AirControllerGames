@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-950: #020617;
+  --color-slate-900: #0f172a;
+  --color-slate-800: #1e293b;
+  --color-slate-600: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-100: #f1f5f9;
+}
+
+body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-100);
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Custom Utilities if needed */
+.animate-in {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
