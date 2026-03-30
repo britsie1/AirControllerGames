@@ -8,6 +8,12 @@ interface MobileControllerProps {
 
 export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) => {
   const { isConnected, sendMessage, error } = usePeer(false, hostId);
+  const sendMessageRef = useRef(sendMessage);
+  
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
+
   const [isReady, setIsReady] = useState(false);
   const [needsPermission, setNeedsPermission] = useState(false);
   const [debug, setDebug] = useState('');
@@ -53,9 +59,8 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
       if (now - lastSent.current < 100) return; // 100ms throttle
 
       // Normalize values (assuming phone is held vertically)
-      // Range is usually -10 to 10
-      let x = (accel.x || 0) / 10;
-      let y = (accel.y || 0) / 10;
+      let x = rawX / 10;
+      let y = rawY / 10;
 
       // Flip and center
       x = 0.5 - (x * 0.5);
@@ -69,7 +74,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
       if (Math.abs(x - lastX.current) > JITTER_THRESHOLD || Math.abs(y - lastY.current) > JITTER_THRESHOLD) {
         lastX.current = x;
         lastY.current = y;
-        sendMessage('MOVE', { x, y });
+        sendMessageRef.current('MOVE', { x, y });
         lastSent.current = now;
       }
     });
