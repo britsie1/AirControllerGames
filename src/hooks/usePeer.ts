@@ -43,15 +43,18 @@ export function usePeer(isHost: boolean, hostId?: string) {
       : new Peer('', config);
 
     newPeer.on('open', (id) => {
+      console.log(`[Peer] Opened with ID: ${id} (Host: ${isHost})`);
       setId(id);
       setIsConnected(true);
       if (!isHost && hostId) {
-        const conn = newPeer.connect(hostId);
+        console.log(`[Peer] Connecting to host: ${hostId}`);
+        const conn = newPeer.connect(hostId, { serialization: 'json' });
         handleConnection(conn);
       }
     });
 
     newPeer.on('connection', (conn) => {
+      console.log(`[Peer] Incoming connection from: ${conn.peer}`);
       handleConnection(conn);
     });
 
@@ -87,11 +90,16 @@ export function usePeer(isHost: boolean, hostId?: string) {
       const msg = data as PeerMessage;
       if (isHost) {
         if (msg.type === 'READY') {
+          console.log(`[Host] Ready from ${conn.peer}: ${msg.payload}`);
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], isReady: msg.payload },
           }));
         } else if (msg.type === 'MOVE') {
+          // Only log every 10th move to avoid flooding the console
+          if (Math.random() > 0.9) {
+            console.log(`[Host] Move from ${conn.peer}: ${msg.payload.x.toFixed(2)}, ${msg.payload.y.toFixed(2)}`);
+          }
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], x: msg.payload.x, y: msg.payload.y },
