@@ -52,6 +52,7 @@ export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
 
   useEffect(() => {
     if (gameState === 'WARMUP') {
+      finishCount.current = 0;
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -185,6 +186,7 @@ export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
             const currentGridX = Math.floor(marble.x / cellW);
             const currentGridY = Math.floor(marble.y / cellH);
             if (currentGridX === maze.endX && currentGridY === maze.endY) {
+              marble.finished = true; // Update ref immediately to prevent race condition
               finishCount.current += 1;
               
               const elapsed = (Date.now() - startTime.current) / 1000;

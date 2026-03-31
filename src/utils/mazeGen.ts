@@ -48,11 +48,9 @@ export function generateMaze(width: number, height: number): Maze {
     }
 
     walk(centerX, centerY);
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        grid[centerY + dy][centerX + dx] = 0;
-      }
-    }
+    
+    // Only open the absolute center cell to make the final approach more precise
+    grid[centerY][centerX] = 0;
 
     return {
       grid,
@@ -90,15 +88,19 @@ export function generateMaze(width: number, height: number): Maze {
   }
 
   let attempts = 0;
-  while (attempts < 15) {
+  while (attempts < 30) {
     const maze = createMaze();
     const distances = getDistances(maze);
     const startDists = maze.possibleStarts.map(s => distances[`${s.x},${s.y}`] || Infinity);
     const min = Math.min(...startDists);
     const max = Math.max(...startDists);
     
-    // Tightened fairness for 16 players: within 25% difference
-    if (max !== Infinity && (max - min) / max < 0.25) {
+    // Minimum complexity: The shortest path must be at least 1.5x the Manhattan distance
+    const manhattanDist = (w / 2) + (h / 2);
+    const isChallenging = min > manhattanDist * 1.5;
+    
+    // Fairness: Paths within 25% of each other
+    if (max !== Infinity && (max - min) / max < 0.25 && isChallenging) {
       return maze;
     }
     attempts++;
