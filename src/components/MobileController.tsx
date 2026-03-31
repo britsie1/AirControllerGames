@@ -19,7 +19,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
   const [debug, setDebug] = useState('');
 
   const lastSent = useRef(0);
-  const JITTER_THRESHOLD = 0.01;
+  const JITTER_THRESHOLD = 0.03;
   const lastX = useRef(0.5);
   const lastY = useRef(0.5);
 
@@ -56,7 +56,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
       setMotionData({ x: rawX, y: rawY });
 
       const now = Date.now();
-      if (now - lastSent.current < 100) return; // 100ms throttle
+      if (now - lastSent.current < 50) return; // 50ms interval (20Hz)
 
       // Normalize values (assuming phone is held vertically)
       let x = rawX / 10;
