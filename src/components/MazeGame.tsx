@@ -18,7 +18,11 @@ interface MarbleState {
   position?: number;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#f97316', '#84cc16', '#a855f7',
+  '#6366f1', '#14b8a6', '#facc15', '#fb7185', '#94a3b8', '#475569'
+];
 
 export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,23 +67,20 @@ export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
     }
   }, [gameState]);
 
-  const isClosingTimerActive = closingTimer !== null && gameState === 'PLAYING';
-
   useEffect(() => {
-    if (!isClosingTimerActive) return;
-
-    const timer = window.setInterval(() => {
-      setClosingTimer((prev) => {
-        if (prev !== null && prev <= 1) {
-          setGameState('SCOREBOARD');
-          return 0;
-        }
-        return prev !== null ? prev - 1 : null;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [isClosingTimerActive]);
+    if (closingTimer !== null && closingTimer > 0 && gameState === 'PLAYING') {
+      const timer = setInterval(() => {
+        setClosingTimer((prev) => {
+          if (prev !== null && prev <= 1) {
+            setGameState('SCOREBOARD');
+            return 0;
+          }
+          return prev !== null ? prev - 1 : null;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [closingTimer !== null, gameState]);
 
   useEffect(() => {
     const draw = () => {
@@ -114,13 +115,7 @@ export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
         // Update and Draw Marbles
         Object.values(playersRef.current).forEach((player, index) => {
           if (!marbleStates[player.id]) {
-            const starts = [
-              { x: 1, y: 1 },
-              { x: maze.width - 2, y: 1 },
-              { x: 1, y: maze.height - 2 },
-              { x: maze.width - 2, y: maze.height - 2 }
-            ];
-            const start = starts[index % starts.length];
+            const start = maze.possibleStarts[index % maze.possibleStarts.length];
             setMarbleStates(prev => ({
               ...prev,
               [player.id]: {
@@ -135,6 +130,8 @@ export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
           }
 
           const marble = marbleStatesRef.current[player.id];
+          if (!marble) return;
+
           const radius = Math.min(cellW, cellH) * 0.3;
 
           if (gameState === 'PLAYING' && !marble.finished) {
@@ -265,7 +262,7 @@ export const MazeGame: React.FC<MazeGameProps> = ({ players, sendToPeer }) => {
       cancelAnimationFrame(requestRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [maze, gameState, marbleStates, sendToPeer]);
+  }, [maze, gameState, marbleStates]);
 
   const results = useMemo(() => {
     return Object.values(players).map(p => {

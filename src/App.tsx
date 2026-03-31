@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { usePeer } from './hooks/usePeer';
 import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
@@ -37,6 +37,10 @@ function HostContainer({ onStartGame, screen }: {
 }) {
   const { id, players, isConnected, sendToPeer } = usePeer(true);
 
+  const handleStartGame = useCallback((mode: 'FREE' | 'MAZE') => {
+    onStartGame(mode === 'FREE' ? 'GAME' : 'MAZE');
+  }, [onStartGame]);
+
   if (!isConnected) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -52,7 +56,7 @@ function HostContainer({ onStartGame, screen }: {
         <Lobby 
           hostId={id} 
           players={players} 
-          onStartGame={(mode) => onStartGame(mode === 'FREE' ? 'GAME' : 'MAZE')} 
+          onStartGame={handleStartGame} 
         />
       ) : screen === 'MAZE' ? (
         <MazeGame players={players} sendToPeer={sendToPeer} />

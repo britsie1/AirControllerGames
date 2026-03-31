@@ -15,43 +15,38 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
   
   const [countdown, setCountdown] = useState<number | null>(null);
 
+  // Adjust state during render if players un-ready
+  if (!allReady && countdown !== null) {
+    setCountdown(null);
+  }
+
   const votes = playerList.reduce((acc, p) => {
     if (p.vote) acc[p.vote]++;
     return acc;
   }, { FREE: 0, MAZE: 0 });
 
   useEffect(() => {
-    let timer: number | undefined;
-    let isInitialized = false;
-    
     if (allReady) {
-      timer = window.setInterval(() => {
-        setCountdown((prev) => {
-          const current = isInitialized ? prev : 10;
-          isInitialized = true;
-          
-          if (current === 1) {
-            clearInterval(timer);
-            
-            // Decide mode
-            let finalMode: 'FREE' | 'MAZE' = 'FREE';
-            if (votes.MAZE > votes.FREE) finalMode = 'MAZE';
-            else if (votes.FREE > votes.MAZE) finalMode = 'FREE';
-            else finalMode = Math.random() > 0.5 ? 'MAZE' : 'FREE';
-            
-            onStartGame(finalMode);
-            return 0;
-          }
-          return current !== null ? current - 1 : null;
-        });
+      const timer = window.setInterval(() => {
+        setCountdown((prev) => (prev === null ? 9 : prev - 1));
       }, 1000);
+      return () => window.clearInterval(timer);
     }
-    
-    return () => {
-      if (timer) clearInterval(timer);
-      if (!allReady) setCountdown(null);
-    };
-  }, [allReady, onStartGame, votes.FREE, votes.MAZE]);
+  }, [allReady]);
+
+  useEffect(() => {
+    if (allReady && countdown === 0) {
+      // Decide mode
+      let finalMode: 'FREE' | 'MAZE' = 'FREE';
+      if (votes.MAZE > votes.FREE) finalMode = 'MAZE';
+      else if (votes.FREE > votes.MAZE) finalMode = 'FREE';
+      else finalMode = Math.random() > 0.5 ? 'MAZE' : 'FREE';
+      
+      onStartGame(finalMode);
+    }
+  }, [countdown, allReady, onStartGame, votes.FREE, votes.MAZE]);
+
+  const displayCountdown = countdown === null && allReady ? 10 : countdown;
 
   const joinUrl = `${window.location.origin}?join=${hostId}`;
 
@@ -113,10 +108,10 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
         </div>
       </div>
 
-      {countdown !== null && (
+      {displayCountdown !== null && (
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in">
           <div className="text-[12rem] font-black text-white leading-none">
-            {countdown}
+            {displayCountdown}
           </div>
           <p className="text-2xl text-slate-400 font-medium">Starting Game...</p>
         </div>
