@@ -13,7 +13,13 @@ interface VisualState {
 export const Game: React.FC<GameProps> = ({ players }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const visualStates = useRef<Record<string, VisualState>>({});
+  const playersRef = useRef(players);
   const requestRef = useRef<number>(0);
+
+  // Update the ref whenever players prop changes
+  useEffect(() => {
+    playersRef.current = players;
+  }, [players]);
 
   const lerp = (start: number, end: number, factor: number) => {
     return start + (end - start) * factor;
@@ -25,10 +31,9 @@ export const Game: React.FC<GameProps> = ({ players }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid for depth
+    // Grid
     ctx.strokeStyle = '#1e293b';
     ctx.lineWidth = 1;
     for (let i = 0; i < canvas.width; i += 50) {
@@ -38,28 +43,25 @@ export const Game: React.FC<GameProps> = ({ players }) => {
       ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
     }
 
-    Object.values(players).forEach((player, index) => {
-      // Initialize visual state if not exists
+    // Access players through the ref to avoid loop resets
+    Object.values(playersRef.current).forEach((player, index) => {
       if (!visualStates.current[player.id]) {
         visualStates.current[player.id] = { x: player.x, y: player.y };
       }
 
-      // Interpolate visual state towards target (player.x, player.y)
-      // Factor of 0.1 for smooth movement
       const vs = visualStates.current[player.id];
-      vs.x = lerp(vs.x, player.x, 0.1);
-      vs.y = lerp(vs.y, player.y, 0.1);
+      // Slightly more aggressive lerp for responsiveness, but stable loop makes it smooth
+      vs.x = lerp(vs.x, player.x, 0.15);
+      vs.y = lerp(vs.y, player.y, 0.15);
 
-      // Draw player
       const x = vs.x * canvas.width;
       const y = vs.y * canvas.height;
-      const radius = 20;
+      const radius = 24; // Slightly larger for better visibility
 
-      // Glow effect
       const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
       const color = colors[index % colors.length];
 
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 20;
       ctx.shadowColor = color;
       ctx.fillStyle = color;
       
@@ -67,12 +69,11 @@ export const Game: React.FC<GameProps> = ({ players }) => {
       ctx.arc(x, y, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Label
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'white';
-      ctx.font = 'bold 14px Inter, system-ui';
+      ctx.font = 'bold 16px Inter, system-ui';
       ctx.textAlign = 'center';
-      ctx.fillText(player.name, x, y - radius - 10);
+      ctx.fillText(player.name, x, y - radius - 12);
     });
 
     requestRef.current = requestAnimationFrame(draw);
@@ -95,7 +96,7 @@ export const Game: React.FC<GameProps> = ({ players }) => {
       cancelAnimationFrame(requestRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [players]);
+  }, []); // Run once on mount
 
   return (
     <div className="w-full h-full bg-slate-950 overflow-hidden relative">
