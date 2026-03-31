@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
 
-export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED' | 'VOTE';
+export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED' | 'VOTE' | 'WIN';
 
 export interface PeerMessage {
   type: MessageType;
@@ -24,6 +24,7 @@ export function usePeer(isHost: boolean, hostId?: string) {
   const [id, setId] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
+  const [winData, setWinData] = useState<{ time: string, position: number } | null>(null);
 
   const generatedId = useRef<string | null>(null);
 
@@ -50,27 +51,25 @@ export function usePeer(isHost: boolean, hostId?: string) {
       const msg = data as PeerMessage;
       if (isHost) {
         if (msg.type === 'READY') {
-          console.log(`[Host] Ready from ${conn.peer}: ${msg.payload}`);
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], isReady: msg.payload as boolean },
           }));
         } else if (msg.type === 'VOTE') {
-          console.log(`[Host] Vote from ${conn.peer}: ${msg.payload}`);
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], vote: msg.payload as 'FREE' | 'MAZE' },
           }));
         } else if (msg.type === 'MOVE') {
           const moveData = msg.payload as { x: number, y: number };
-          // Only log every 10th move to avoid flooding the console
-          if (Math.random() > 0.9) {
-            console.log(`[Host] Move from ${conn.peer}: ${moveData.x.toFixed(2)}, ${moveData.y.toFixed(2)}`);
-          }
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], x: moveData.x, y: moveData.y },
           }));
+        }
+      } else {
+        if (msg.type === 'WIN') {
+          setWinData(msg.payload as { time: string, position: number });
         }
       }
     });
@@ -111,23 +110,19 @@ export function usePeer(isHost: boolean, hostId?: string) {
       : new Peer('', config);
 
     newPeer.on('open', (id) => {
-      console.log(`[Peer] Opened with ID: ${id} (Host: ${isHost})`);
       setId(id);
       setIsConnected(true);
       if (!isHost && hostId) {
-        console.log(`[Peer] Connecting to host: ${hostId}`);
         const conn = newPeer.connect(hostId, { serialization: 'json' });
         handleConnection(conn);
       }
     });
 
     newPeer.on('connection', (conn) => {
-      console.log(`[Peer] Incoming connection from: ${conn.peer}`);
       handleConnection(conn);
     });
 
     newPeer.on('error', (err) => {
-      console.error('Peer error:', err);
       setError(err.message);
     });
 
@@ -145,11 +140,20 @@ export function usePeer(isHost: boolean, hostId?: string) {
     });
   }, [connections]);
 
+  const sendToPeer = useCallback((peerId: string, type: MessageType, payload: unknown) => {
+    const conn = connections[peerId];
+    if (conn && conn.open) {
+      conn.send({ type, payload });
+    }
+  }, [connections]);
+
   return {
     id,
     players,
     isConnected,
     error,
+    winData,
     sendMessage,
+    sendToPeer,
   };
 }

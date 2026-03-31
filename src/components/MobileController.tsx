@@ -7,7 +7,7 @@ interface MobileControllerProps {
 }
 
 export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) => {
-  const { isConnected, sendMessage, error } = usePeer(false, hostId);
+  const { isConnected, sendMessage, error, winData } = usePeer(false, hostId);
   const sendMessageRef = useRef(sendMessage);
   
   useEffect(() => {
@@ -111,6 +111,39 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
             <span>{error}</span>
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (winData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 bg-emerald-950 text-white text-center gap-8">
+        <div className="bg-emerald-500 w-24 h-24 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-bounce">
+          <CheckCircle className="w-16 h-16 text-white" />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-5xl font-black italic tracking-tighter">FINISH!</h2>
+          <p className="text-emerald-200 text-xl font-medium">You completed the maze!</p>
+        </div>
+
+        <div className="w-full max-w-xs space-y-4">
+          <div className="bg-emerald-900/50 p-6 rounded-2xl border border-emerald-800 backdrop-blur">
+            <div className="text-emerald-400 text-sm font-bold uppercase tracking-widest mb-1">Clear Time</div>
+            <div className="text-4xl font-mono font-black">{winData.time}</div>
+          </div>
+
+          <div className="bg-emerald-900/50 p-6 rounded-2xl border border-emerald-800 backdrop-blur">
+            <div className="text-emerald-400 text-sm font-bold uppercase tracking-widest mb-1">Position</div>
+            <div className="text-4xl font-black">
+              {winData.position === 1 ? '1st' : 
+               winData.position === 2 ? '2nd' : 
+               winData.position === 3 ? '3rd' : 
+               `${winData.position}th`}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-emerald-400/60 text-sm">Wait for others to finish or the host to restart.</p>
       </div>
     );
   }

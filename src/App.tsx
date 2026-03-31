@@ -35,7 +35,7 @@ function HostContainer({ onStartGame, screen }: {
   onStartGame: (mode: Screen) => void, 
   screen: Screen
 }) {
-  const { id, players, isConnected } = usePeer(true);
+  const { id, players, isConnected, sendToPeer } = usePeer(true);
 
   if (!isConnected) {
     return (
@@ -55,7 +55,7 @@ function HostContainer({ onStartGame, screen }: {
           onStartGame={(mode) => onStartGame(mode === 'FREE' ? 'GAME' : 'MAZE')} 
         />
       ) : screen === 'MAZE' ? (
-        <MazeGame players={players} />
+        <MazeGame players={players} sendToPeer={sendToPeer} />
       ) : (
         <Game players={players} />
       )}
