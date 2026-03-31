@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { usePeer } from './hooks/usePeer';
 import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
+import { MazeGame } from './components/MazeGame';
 import { MobileController } from './components/MobileController';
 import { Loader2 } from 'lucide-react';
 
-type Screen = 'LOBBY' | 'GAME' | 'MOBILE';
+type Screen = 'LOBBY' | 'GAME' | 'MAZE' | 'MOBILE';
 
 function App() {
   const [screen, setScreen] = useState<Screen>('LOBBY');
@@ -24,10 +25,18 @@ function App() {
     return <MobileController hostId={joinId} />;
   }
 
-  return <HostContainer onStartGame={() => setScreen('GAME')} screen={screen} />;
+  return (
+    <HostContainer 
+      onStartGame={(mode) => setScreen(mode)} 
+      screen={screen} 
+    />
+  );
 }
 
-function HostContainer({ onStartGame, screen }: { onStartGame: () => void, screen: Screen }) {
+function HostContainer({ onStartGame, screen }: { 
+  onStartGame: (mode: Screen) => void, 
+  screen: Screen
+}) {
   const { id, players, isConnected } = usePeer(true);
 
   if (!isConnected) {
@@ -45,8 +54,10 @@ function HostContainer({ onStartGame, screen }: { onStartGame: () => void, scree
         <Lobby 
           hostId={id} 
           players={players} 
-          onStartGame={onStartGame} 
+          onStartGame={(mode) => onStartGame(mode === 'FREE' ? 'GAME' : 'MAZE')} 
         />
+      ) : screen === 'MAZE' ? (
+        <MazeGame players={players} />
       ) : (
         <Game players={players} />
       )}

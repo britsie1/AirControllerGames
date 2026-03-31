@@ -15,6 +15,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
   }, [sendMessage]);
 
   const [isReady, setIsReady] = useState(false);
+  const [vote, setVote] = useState<'FREE' | 'MAZE' | null>(null);
   const [needsPermission, setNeedsPermission] = useState(false);
   const [debug, setDebug] = useState('');
 
@@ -86,6 +87,11 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
     sendMessage('READY', next);
   };
 
+  const handleVote = (mode: 'FREE' | 'MAZE') => {
+    setVote(mode);
+    sendMessage('VOTE', mode);
+  };
+
   if (!isConnected) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-6">
@@ -115,6 +121,30 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
         <div className="text-xs text-slate-500 font-mono text-center p-2 bg-slate-800/50 rounded-lg">
           Motion: X: {motionData.x.toFixed(2)}, Y: {motionData.y.toFixed(2)}
         </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => handleVote('FREE')}
+            className={`py-4 rounded-xl font-bold transition-all ${
+              vote === 'FREE' 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400 border-transparent' 
+                : 'bg-slate-800 text-slate-400 border border-slate-700'
+            }`}
+          >
+            Free Roam
+          </button>
+          <button
+            onClick={() => handleVote('MAZE')}
+            className={`py-4 rounded-xl font-bold transition-all ${
+              vote === 'MAZE' 
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-2 ring-amber-400 border-transparent' 
+                : 'bg-slate-800 text-slate-400 border border-slate-700'
+            }`}
+          >
+            Maze Runner
+          </button>
+        </div>
+
         {needsPermission ? (
           <button
             onClick={requestPermission}

@@ -6,13 +6,18 @@ import { Loader2, CheckCircle, Clock } from 'lucide-react';
 interface LobbyProps {
   hostId: string;
   players: Record<string, Player>;
-  onStartGame: () => void;
+  onStartGame: (mode: 'FREE' | 'MAZE') => void;
 }
 
 export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const playerList = Object.values(players);
   const allReady = playerList.length > 0 && playerList.every((p) => p.isReady);
+
+  const votes = playerList.reduce((acc, p) => {
+    if (p.vote) acc[p.vote]++;
+    return acc;
+  }, { FREE: 0, MAZE: 0 });
 
   useEffect(() => {
     let timer: number;
@@ -22,7 +27,13 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
         setCountdown((prev) => {
           if (prev === 1) {
             clearInterval(timer);
-            onStartGame();
+            // Decide mode
+            let finalMode: 'FREE' | 'MAZE' = 'FREE';
+            if (votes.MAZE > votes.FREE) finalMode = 'MAZE';
+            else if (votes.FREE > votes.MAZE) finalMode = 'FREE';
+            else finalMode = Math.random() > 0.5 ? 'MAZE' : 'FREE';
+            
+            onStartGame(finalMode);
             return 0;
           }
           return prev !== null ? prev - 1 : null;
@@ -32,7 +43,7 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
       setCountdown(null);
     }
     return () => clearInterval(timer);
-  }, [allReady, onStartGame]);
+  }, [allReady, onStartGame, votes.FREE, votes.MAZE]);
 
   const joinUrl = `${window.location.origin}?join=${hostId}`;
 
@@ -50,7 +61,18 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
           <QRCodeSVG value={joinUrl} size={256} />
         </div>
 
-        <div className="w-80 space-y-6">
+        <div className="w-96 space-y-6">
+          <div className="flex gap-4 mb-8">
+            <div className="flex-1 bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Free Roam</div>
+              <div className="text-3xl font-bold text-blue-400">{votes.FREE}</div>
+            </div>
+            <div className="flex-1 bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Maze Runner</div>
+              <div className="text-3xl font-bold text-amber-400">{votes.MAZE}</div>
+            </div>
+          </div>
+
           <h2 className="text-2xl font-semibold flex items-center gap-2">
             Players ({playerList.length})
             {allReady && <Loader2 className="animate-spin text-blue-400" />}
@@ -65,7 +87,12 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
                   key={player.id} 
                   className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center transition-all animate-in fade-in slide-in-from-right-4"
                 >
-                  <span className="font-medium">{player.name}</span>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{player.name}</span>
+                    <span className="text-xs text-slate-500">
+                      {player.vote === 'FREE' ? 'Voted Free Roam' : player.vote === 'MAZE' ? 'Voted Maze' : 'Not voted'}
+                    </span>
+                  </div>
                   {player.isReady ? (
                     <CheckCircle className="text-emerald-400 w-6 h-6" />
                   ) : (

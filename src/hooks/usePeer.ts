@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
 
-export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED';
+export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED' | 'VOTE';
 
 export interface PeerMessage {
   type: MessageType;
@@ -13,6 +13,7 @@ export interface Player {
   id: string;
   name: string;
   isReady: boolean;
+  vote: 'FREE' | 'MAZE' | null;
   x: number;
   y: number;
 }
@@ -79,6 +80,7 @@ export function usePeer(isHost: boolean, hostId?: string) {
             id: conn.peer,
             name: `Player ${Object.keys(prev).length + 1}`,
             isReady: false,
+            vote: null,
             x: 0.5,
             y: 0.5,
           },
@@ -94,6 +96,12 @@ export function usePeer(isHost: boolean, hostId?: string) {
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], isReady: msg.payload },
+          }));
+        } else if (msg.type === 'VOTE') {
+          console.log(`[Host] Vote from ${conn.peer}: ${msg.payload}`);
+          setPlayers((prev) => ({
+            ...prev,
+            [conn.peer]: { ...prev[conn.peer], vote: msg.payload },
           }));
         } else if (msg.type === 'MOVE') {
           // Only log every 10th move to avoid flooding the console
