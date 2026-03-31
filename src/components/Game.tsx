@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import type { Player } from '../hooks/usePeer';
 
 interface GameProps {
@@ -25,7 +25,9 @@ export const Game: React.FC<GameProps> = ({ players }) => {
     return start + (end - start) * factor;
   };
 
-  const draw = () => {
+  const drawRef = useRef<() => void>(() => {});
+
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -76,8 +78,12 @@ export const Game: React.FC<GameProps> = ({ players }) => {
       ctx.fillText(player.name, x, y - radius - 12);
     });
 
-    requestRef.current = requestAnimationFrame(draw);
-  };
+    requestRef.current = requestAnimationFrame(drawRef.current);
+  }, []);
+
+  useEffect(() => {
+    drawRef.current = draw;
+  }, [draw]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -96,7 +102,7 @@ export const Game: React.FC<GameProps> = ({ players }) => {
       cancelAnimationFrame(requestRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, []); // Run once on mount
+  }, [draw]); // Run once on mount
 
   return (
     <div className="w-full h-full bg-slate-950 overflow-hidden relative">

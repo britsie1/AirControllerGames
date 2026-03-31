@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePeer } from './hooks/usePeer';
 import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
@@ -9,17 +9,15 @@ import { Loader2 } from 'lucide-react';
 type Screen = 'LOBBY' | 'GAME' | 'MAZE' | 'MOBILE';
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('LOBBY');
-  const [joinId, setJoinId] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [screen, setScreen] = useState<Screen>(() => {
     const params = new URLSearchParams(window.location.search);
-    const join = params.get('join');
-    if (join) {
-      setJoinId(join);
-      setScreen('MOBILE');
-    }
-  }, []);
+    return params.get('join') ? 'MOBILE' : 'LOBBY';
+  });
+
+  const [joinId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('join');
+  });
 
   if (screen === 'MOBILE' && joinId) {
     return <MobileController hostId={joinId} />;

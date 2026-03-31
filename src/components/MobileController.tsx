@@ -16,47 +16,32 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
 
   const [isReady, setIsReady] = useState(false);
   const [vote, setVote] = useState<'FREE' | 'MAZE' | null>(null);
-  const [needsPermission, setNeedsPermission] = useState(false);
+  const [needsPermission, setNeedsPermission] = useState(() => {
+    const DeviceMotion = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    return typeof DeviceMotion.requestPermission === 'function';
+  });
   const [debug, setDebug] = useState('');
+  const [motionDisplay, setMotionDisplay] = useState({ x: 0, y: 0 });
 
   const lastSent = useRef(0);
   const JITTER_THRESHOLD = 0.03;
   const lastX = useRef(0.5);
   const lastY = useRef(0.5);
 
-  useEffect(() => {
-    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
-      setNeedsPermission(true);
-    } else {
-      startListening();
-    }
-  }, []);
-
-  const requestPermission = async () => {
-    try {
-      const response = await (DeviceMotionEvent as any).requestPermission();
-      if (response === 'granted') {
-        setNeedsPermission(false);
-        startListening();
-      }
-    } catch (err) {
-      console.error('Permission error:', err);
-      setDebug(`Permission failed: ${err}`);
-    }
-  };
-
-  const [motionData, setMotionData] = useState({ x: 0, y: 0 });
-
-  const startListening = () => {
+  const startListening = useRef(() => {
     window.addEventListener('devicemotion', (event) => {
       const accel = event.accelerationIncludingGravity;
       if (!accel) return;
 
       const rawX = accel.x || 0;
       const rawY = accel.y || 0;
-      setMotionData({ x: rawX, y: rawY });
-
+      
+      // Update UI every 100ms only to save battery/renders
       const now = Date.now();
+      if (now % 5 === 0) {
+        setMotionDisplay({ x: rawX, y: rawY });
+      }
+
       if (now - lastSent.current < 20) return; // 20ms interval (50Hz)
 
       // Normalize values (assuming phone is held vertically)
@@ -79,6 +64,29 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
         lastSent.current = now;
       }
     });
+  });
+
+  useEffect(() => {
+    const DeviceMotion = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+    if (typeof DeviceMotion.requestPermission !== 'function') {
+      startListening.current();
+    }
+  }, []);
+
+  const requestPermission = async () => {
+    try {
+      const DeviceMotion = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
+      if (typeof DeviceMotion.requestPermission === 'function') {
+        const response = await DeviceMotion.requestPermission();
+        if (response === 'granted') {
+          setNeedsPermission(false);
+          startListening.current();
+        }
+      }
+    } catch (err) {
+      console.error('Permission error:', err);
+      setDebug(`Permission failed: ${err}`);
+    }
   };
 
   const toggleReady = () => {
@@ -119,7 +127,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
 
       <div className="w-full space-y-6">
         <div className="text-xs text-slate-500 font-mono text-center p-2 bg-slate-800/50 rounded-lg">
-          Motion: X: {motionData.x.toFixed(2)}, Y: {motionData.y.toFixed(2)}
+          Motion: X: {motionDisplay.x.toFixed(2)}, Y: {motionDisplay.y.toFixed(2)}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

@@ -10,9 +10,10 @@ interface LobbyProps {
 }
 
 export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) => {
-  const [countdown, setCountdown] = useState<number | null>(null);
   const playerList = Object.values(players);
   const allReady = playerList.length > 0 && playerList.every((p) => p.isReady);
+  
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const votes = playerList.reduce((acc, p) => {
     if (p.vote) acc[p.vote]++;
@@ -20,13 +21,18 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
   }, { FREE: 0, MAZE: 0 });
 
   useEffect(() => {
-    let timer: number;
+    let timer: number | undefined;
+    let isInitialized = false;
+    
     if (allReady) {
-      setCountdown(10);
       timer = window.setInterval(() => {
         setCountdown((prev) => {
-          if (prev === 1) {
+          const current = isInitialized ? prev : 10;
+          isInitialized = true;
+          
+          if (current === 1) {
             clearInterval(timer);
+            
             // Decide mode
             let finalMode: 'FREE' | 'MAZE' = 'FREE';
             if (votes.MAZE > votes.FREE) finalMode = 'MAZE';
@@ -36,13 +42,15 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
             onStartGame(finalMode);
             return 0;
           }
-          return prev !== null ? prev - 1 : null;
+          return current !== null ? current - 1 : null;
         });
       }, 1000);
-    } else {
-      setCountdown(null);
     }
-    return () => clearInterval(timer);
+    
+    return () => {
+      if (timer) clearInterval(timer);
+      if (!allReady) setCountdown(null);
+    };
   }, [allReady, onStartGame, votes.FREE, votes.MAZE]);
 
   const joinUrl = `${window.location.origin}?join=${hostId}`;

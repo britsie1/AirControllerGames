@@ -6,7 +6,7 @@ export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED' | 'VOTE';
 
 export interface PeerMessage {
   type: MessageType;
-  payload: any;
+  payload: unknown;
 }
 
 export interface Player {
@@ -25,10 +25,77 @@ export function usePeer(isHost: boolean, hostId?: string) {
   const [error, setError] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
 
-  // Generate a random 6-digit code if we are the host and no ID is provided
-  const generatedId = useRef(Math.floor(100000 + Math.random() * 900000).toString());
+  const generatedId = useRef<string | null>(null);
+
+  const handleConnection = useCallback((conn: DataConnection) => {
+    conn.on('open', () => {
+      setConnections((prev) => ({ ...prev, [conn.peer]: conn }));
+      
+      if (isHost) {
+        setPlayers((prev) => ({
+          ...prev,
+          [conn.peer]: {
+            id: conn.peer,
+            name: `Player ${Object.keys(prev).length + 1}`,
+            isReady: false,
+            vote: null,
+            x: 0.5,
+            y: 0.5,
+          },
+        }));
+      }
+    });
+
+    conn.on('data', (data: unknown) => {
+      const msg = data as PeerMessage;
+      if (isHost) {
+        if (msg.type === 'READY') {
+          console.log(`[Host] Ready from ${conn.peer}: ${msg.payload}`);
+          setPlayers((prev) => ({
+            ...prev,
+            [conn.peer]: { ...prev[conn.peer], isReady: msg.payload as boolean },
+          }));
+        } else if (msg.type === 'VOTE') {
+          console.log(`[Host] Vote from ${conn.peer}: ${msg.payload}`);
+          setPlayers((prev) => ({
+            ...prev,
+            [conn.peer]: { ...prev[conn.peer], vote: msg.payload as 'FREE' | 'MAZE' },
+          }));
+        } else if (msg.type === 'MOVE') {
+          const moveData = msg.payload as { x: number, y: number };
+          // Only log every 10th move to avoid flooding the console
+          if (Math.random() > 0.9) {
+            console.log(`[Host] Move from ${conn.peer}: ${moveData.x.toFixed(2)}, ${moveData.y.toFixed(2)}`);
+          }
+          setPlayers((prev) => ({
+            ...prev,
+            [conn.peer]: { ...prev[conn.peer], x: moveData.x, y: moveData.y },
+          }));
+        }
+      }
+    });
+
+    conn.on('close', () => {
+      setConnections((prev) => {
+        const next = { ...prev };
+        delete next[conn.peer];
+        return next;
+      });
+      if (isHost) {
+        setPlayers((prev) => {
+          const next = { ...prev };
+          delete next[conn.peer];
+          return next;
+        });
+      }
+    });
+  }, [isHost]);
 
   useEffect(() => {
+    if (!generatedId.current) {
+      generatedId.current = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
     const config = {
       config: {
         iceServers: [
@@ -67,72 +134,9 @@ export function usePeer(isHost: boolean, hostId?: string) {
     return () => {
       newPeer.destroy();
     };
-  }, [isHost, hostId]);
+  }, [isHost, hostId, handleConnection]);
 
-  const handleConnection = useCallback((conn: DataConnection) => {
-    conn.on('open', () => {
-      setConnections((prev) => ({ ...prev, [conn.peer]: conn }));
-      
-      if (isHost) {
-        setPlayers((prev) => ({
-          ...prev,
-          [conn.peer]: {
-            id: conn.peer,
-            name: `Player ${Object.keys(prev).length + 1}`,
-            isReady: false,
-            vote: null,
-            x: 0.5,
-            y: 0.5,
-          },
-        }));
-      }
-    });
-
-    conn.on('data', (data: any) => {
-      const msg = data as PeerMessage;
-      if (isHost) {
-        if (msg.type === 'READY') {
-          console.log(`[Host] Ready from ${conn.peer}: ${msg.payload}`);
-          setPlayers((prev) => ({
-            ...prev,
-            [conn.peer]: { ...prev[conn.peer], isReady: msg.payload },
-          }));
-        } else if (msg.type === 'VOTE') {
-          console.log(`[Host] Vote from ${conn.peer}: ${msg.payload}`);
-          setPlayers((prev) => ({
-            ...prev,
-            [conn.peer]: { ...prev[conn.peer], vote: msg.payload },
-          }));
-        } else if (msg.type === 'MOVE') {
-          // Only log every 10th move to avoid flooding the console
-          if (Math.random() > 0.9) {
-            console.log(`[Host] Move from ${conn.peer}: ${msg.payload.x.toFixed(2)}, ${msg.payload.y.toFixed(2)}`);
-          }
-          setPlayers((prev) => ({
-            ...prev,
-            [conn.peer]: { ...prev[conn.peer], x: msg.payload.x, y: msg.payload.y },
-          }));
-        }
-      }
-    });
-
-    conn.on('close', () => {
-      setConnections((prev) => {
-        const next = { ...prev };
-        delete next[conn.peer];
-        return next;
-      });
-      if (isHost) {
-        setPlayers((prev) => {
-          const next = { ...prev };
-          delete next[conn.peer];
-          return next;
-        });
-      }
-    });
-  }, [isHost]);
-
-  const sendMessage = useCallback((type: MessageType, payload: any) => {
+  const sendMessage = useCallback((type: MessageType, payload: unknown) => {
     const msg: PeerMessage = { type, payload };
     Object.values(connections).forEach((conn) => {
       if (conn.open) {
