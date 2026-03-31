@@ -56,7 +56,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
       setMotionData({ x: rawX, y: rawY });
 
       const now = Date.now();
-      if (now - lastSent.current < 50) return; // 50ms interval (20Hz)
+      if (now - lastSent.current < 20) return; // 20ms interval (50Hz)
 
       // Normalize values (assuming phone is held vertically)
       let x = rawX / 10;
