@@ -6,7 +6,7 @@ import { Loader2, CheckCircle, Clock } from 'lucide-react';
 interface LobbyProps {
   hostId: string;
   players: Record<string, Player>;
-  onStartGame: (mode: 'FREE' | 'MAZE') => void;
+  onStartGame: (mode: 'FREE' | 'MAZE' | 'BALANCE') => void;
 }
 
 export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) => {
@@ -23,7 +23,7 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
   const votes = playerList.reduce((acc, p) => {
     if (p.vote) acc[p.vote]++;
     return acc;
-  }, { FREE: 0, MAZE: 0 });
+  }, { FREE: 0, MAZE: 0, BALANCE: 0 });
 
   useEffect(() => {
     if (allReady) {
@@ -37,14 +37,17 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
   useEffect(() => {
     if (allReady && countdown === 0) {
       // Decide mode
-      let finalMode: 'FREE' | 'MAZE' = 'FREE';
-      if (votes.MAZE > votes.FREE) finalMode = 'MAZE';
-      else if (votes.FREE > votes.MAZE) finalMode = 'FREE';
-      else finalMode = Math.random() > 0.5 ? 'MAZE' : 'FREE';
+      const modes: ('FREE' | 'MAZE' | 'BALANCE')[] = ['FREE', 'MAZE', 'BALANCE'];
+      const winner = modes.reduce((a, b) => (votes[a] > votes[b] ? a : b));
+      
+      // Handle ties randomly among top voted
+      const maxVotes = votes[winner];
+      const candidates = modes.filter(m => votes[m] === maxVotes);
+      const finalMode = candidates[Math.floor(Math.random() * candidates.length)];
       
       onStartGame(finalMode);
     }
-  }, [countdown, allReady, onStartGame, votes.FREE, votes.MAZE]);
+  }, [countdown, allReady, onStartGame, votes]);
 
   const displayCountdown = countdown === null && allReady ? 10 : countdown;
 
@@ -65,14 +68,18 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
         </div>
 
         <div className="w-96 space-y-6">
-          <div className="flex gap-4 mb-8">
-            <div className="flex-1 bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
-              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Free Roam</div>
-              <div className="text-3xl font-bold text-blue-400">{votes.FREE}</div>
+          <div className="grid grid-cols-3 gap-2 mb-8">
+            <div className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-center">
+              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Free</div>
+              <div className="text-xl font-bold text-blue-400">{votes.FREE}</div>
             </div>
-            <div className="flex-1 bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
-              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Maze Runner</div>
-              <div className="text-3xl font-bold text-amber-400">{votes.MAZE}</div>
+            <div className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-center">
+              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Maze</div>
+              <div className="text-xl font-bold text-amber-400">{votes.MAZE}</div>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 p-2 rounded-xl text-center">
+              <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Beam</div>
+              <div className="text-xl font-bold text-purple-400">{votes.BALANCE}</div>
             </div>
           </div>
 
@@ -93,7 +100,7 @@ export const Lobby: React.FC<LobbyProps> = ({ hostId, players, onStartGame }) =>
                   <div className="flex flex-col">
                     <span className="font-medium">{player.name}</span>
                     <span className="text-xs text-slate-500">
-                      {player.vote === 'FREE' ? 'Voted Free Roam' : player.vote === 'MAZE' ? 'Voted Maze' : 'Not voted'}
+                      {player.vote === 'FREE' ? 'Voted Free Roam' : player.vote === 'MAZE' ? 'Voted Maze' : player.vote === 'BALANCE' ? 'Voted Balance Beam' : 'Not voted'}
                     </span>
                   </div>
                   {player.isReady ? (

@@ -15,7 +15,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
   }, [sendMessage]);
 
   const [isReady, setIsReady] = useState(false);
-  const [vote, setVote] = useState<'FREE' | 'MAZE' | null>(null);
+  const [vote, setVote] = useState<'FREE' | 'MAZE' | 'BALANCE' | null>(null);
   const [needsPermission, setNeedsPermission] = useState(() => {
     const DeviceMotion = DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> };
     return typeof DeviceMotion.requestPermission === 'function';
@@ -27,6 +27,12 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
   const JITTER_THRESHOLD = 0.03;
   const lastX = useRef(0.5);
   const lastY = useRef(0.5);
+
+  const handleJump = () => {
+    sendMessage('JUMP', null);
+    // Visual feedback
+    if (navigator.vibrate) navigator.vibrate(50);
+  };
 
   const startListening = useRef(() => {
     window.addEventListener('devicemotion', (event) => {
@@ -42,7 +48,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
         setMotionDisplay({ x: rawX, y: rawY });
       }
 
-      if (now - lastSent.current < 20) return; // 20ms interval (50Hz)
+      if (now - lastSent.current < 100) return; // 100ms interval (10Hz)
 
       // Normalize values (assuming phone is held vertically)
       let x = rawX / 10;
@@ -95,7 +101,7 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
     sendMessage('READY', next);
   };
 
-  const handleVote = (mode: 'FREE' | 'MAZE') => {
+  const handleVote = (mode: 'FREE' | 'MAZE' | 'BALANCE') => {
     setVote(mode);
     sendMessage('VOTE', mode);
   };
@@ -163,28 +169,47 @@ export const MobileController: React.FC<MobileControllerProps> = ({ hostId }) =>
           Motion: X: {motionDisplay.x.toFixed(2)}, Y: {motionDisplay.y.toFixed(2)}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => handleVote('FREE')}
-            className={`py-4 rounded-xl font-bold transition-all ${
+            className={`py-3 rounded-xl font-bold text-xs transition-all ${
               vote === 'FREE' 
                 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400 border-transparent' 
                 : 'bg-slate-800 text-slate-400 border border-slate-700'
             }`}
           >
-            Free Roam
+            Free
           </button>
           <button
             onClick={() => handleVote('MAZE')}
-            className={`py-4 rounded-xl font-bold transition-all ${
+            className={`py-3 rounded-xl font-bold text-xs transition-all ${
               vote === 'MAZE' 
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 ring-2 ring-amber-400 border-transparent' 
                 : 'bg-slate-800 text-slate-400 border border-slate-700'
             }`}
           >
-            Maze Runner
+            Maze
+          </button>
+          <button
+            onClick={() => handleVote('BALANCE')}
+            className={`py-3 rounded-xl font-bold text-xs transition-all ${
+              vote === 'BALANCE' 
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-2 ring-purple-400 border-transparent' 
+                : 'bg-slate-800 text-slate-400 border border-slate-700'
+            }`}
+          >
+            Beam
           </button>
         </div>
+
+        {!needsPermission && isReady && (
+          <button
+            onClick={handleJump}
+            className="w-full py-12 bg-red-600 hover:bg-red-500 active:bg-red-700 rounded-3xl font-black text-5xl transition-all shadow-lg shadow-red-600/40 border-b-8 border-red-800 active:border-b-0 active:translate-y-2 uppercase italic tracking-tighter"
+          >
+            Jump!
+          </button>
+        )}
 
         {needsPermission ? (
           <button

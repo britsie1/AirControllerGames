@@ -3,10 +3,11 @@ import { usePeer } from './hooks/usePeer';
 import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
 import { MazeGame } from './components/MazeGame';
+import { BalanceBeamGame } from './components/BalanceBeamGame';
 import { MobileController } from './components/MobileController';
 import { Loader2 } from 'lucide-react';
 
-type Screen = 'LOBBY' | 'GAME' | 'MAZE' | 'MOBILE';
+type Screen = 'LOBBY' | 'GAME' | 'MAZE' | 'BALANCE' | 'MOBILE';
 
 function App() {
   const [screen, setScreen] = useState<Screen>(() => {
@@ -37,8 +38,10 @@ function HostContainer({ onStartGame, screen }: {
 }) {
   const { id, players, isConnected, sendToPeer } = usePeer(true);
 
-  const handleStartGame = useCallback((mode: 'FREE' | 'MAZE') => {
-    onStartGame(mode === 'FREE' ? 'GAME' : 'MAZE');
+  const handleStartGame = useCallback((mode: 'FREE' | 'MAZE' | 'BALANCE') => {
+    if (mode === 'FREE') onStartGame('GAME');
+    else if (mode === 'MAZE') onStartGame('MAZE');
+    else if (mode === 'BALANCE') onStartGame('BALANCE');
   }, [onStartGame]);
 
   if (!isConnected) {
@@ -60,6 +63,8 @@ function HostContainer({ onStartGame, screen }: {
         />
       ) : screen === 'MAZE' ? (
         <MazeGame players={players} sendToPeer={sendToPeer} />
+      ) : screen === 'BALANCE' ? (
+        <BalanceBeamGame players={players} sendToPeer={sendToPeer} />
       ) : (
         <Game players={players} />
       )}

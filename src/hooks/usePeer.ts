@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
 
-export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED' | 'VOTE' | 'WIN';
+export type MessageType = 'READY' | 'MOVE' | 'PLAYER_JOINED' | 'VOTE' | 'WIN' | 'JUMP';
 
 export interface PeerMessage {
   type: MessageType;
@@ -13,9 +13,10 @@ export interface Player {
   id: string;
   name: string;
   isReady: boolean;
-  vote: 'FREE' | 'MAZE' | null;
+  vote: 'FREE' | 'MAZE' | 'BALANCE' | null;
   x: number;
   y: number;
+  lastJumpTime?: number;
 }
 
 export function usePeer(isHost: boolean, hostId?: string) {
@@ -58,13 +59,18 @@ export function usePeer(isHost: boolean, hostId?: string) {
         } else if (msg.type === 'VOTE') {
           setPlayers((prev) => ({
             ...prev,
-            [conn.peer]: { ...prev[conn.peer], vote: msg.payload as 'FREE' | 'MAZE' },
+            [conn.peer]: { ...prev[conn.peer], vote: msg.payload as 'FREE' | 'MAZE' | 'BALANCE' },
           }));
         } else if (msg.type === 'MOVE') {
           const moveData = msg.payload as { x: number, y: number };
           setPlayers((prev) => ({
             ...prev,
             [conn.peer]: { ...prev[conn.peer], x: moveData.x, y: moveData.y },
+          }));
+        } else if (msg.type === 'JUMP') {
+          setPlayers((prev) => ({
+            ...prev,
+            [conn.peer]: { ...prev[conn.peer], lastJumpTime: Date.now() },
           }));
         }
       } else {
